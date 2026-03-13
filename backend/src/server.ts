@@ -4,6 +4,8 @@ import cors from 'cors';
 import SpotifyWebApi = require("spotify-web-api-node");
 import { UserProfile, ArtistProfile, Song, UserData, TimeRange } from './types';
 import { userData } from './data';
+import { throwDeprecation } from 'node:process';
+import { getTop10Tracks, getTop3Artists } from './getFns';
 
 const app = express();
 const PORT = process.env.PORT || 8888;
@@ -104,10 +106,101 @@ app.post('/api/auth/refresh-token', async (req: Request, res: Response) => {
 
 //TODO
 //get profile details /api/profile
+app.get('/api/profile', (req: Request, res: Response) => {
+  if (!userData.accessToken) {
+    res.status(401).json({
+      error: 'Please log in'
+    });
+    return;
+  }
+  if (!userData.profile) {
+    res.status(404).json({
+      error: 'Profile data not found'
+    });
+    return;
+  }
+
+  res.json({
+    displayName: userData.profile.display_name,
+    country: userData.profile.country,
+    images: userData.profile.images
+  });
+});
+
 //get profile summary w top artists and tracks /api/profile/summary
+app.get('/api/profile/summary', (req: Request, res: Response) => {
+  if (!userData.accessToken) {
+    res.status(401).json({
+      error: 'Please log in'
+    });
+    return;
+  }
+  if (!userData.profile) {
+    res.status(404).json({
+      error: 'Profile data not found'
+    });
+    return;
+  }
+
+  res.json({
+    topArtists: userData.topArtists,
+    topTracks: userData.topTracks
+  });
+});
+
 //get top artists and a small info abt each artist /api/artists/top
-//get genre breakdown for each top artist /api/artists/genres
+app.get('/api/artists/top', (req: Request, res: Response) => {
+  if (!userData.accessToken) {
+    res.status(401).json({
+      error: 'Please log in'
+    });
+    return;
+  }
+  if (!userData.profile) {
+    res.status(404).json({
+      error: 'Profile data not found'
+    });
+    return;
+  }
+
+  const top3 = getTop3Artists(userData);
+  if (!top3) {
+    res.status(404).json({
+      error: 'Top artists not found'
+    });
+    return;
+  }
+
+  res.json(top3)
+});
+
+//get genre breakdown for each top artist /api/artists/genre
+
 //get users top tracks /api/tracks/top
+app.get('/api/tracks/top', (req: Request, res: Response) => {
+  if (!userData.accessToken) {
+    res.status(401).json({
+      error: 'Please log in'
+    });
+    return;
+  }
+  if (!userData.profile) {
+    res.status(404).json({
+      error: 'Profile data not found'
+    });
+    return;
+  }
+
+  const top10 = getTop10Tracks(userData);
+  if (!top10) {
+    res.status(404).json({
+      error: 'Top songs not found'
+    });
+    return;
+  }
+
+  res.json(top10);
+});
 //get user most recently played /api/tracks/recent note needs additional scope
 //post refresh to get recent data from api /api/refresh same as callback pretty much
 
